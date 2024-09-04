@@ -4,28 +4,28 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 
-const loginSchema = z.object({
+const loginBusinessSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters long'),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginBusinessFormData = z.infer<typeof loginBusinessSchema>;
 
-export const useLogin = () => {
+export const useLoginBusiness = () => {
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginBusinessFormData>({
+    resolver: zodResolver(loginBusinessSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: LoginBusinessFormData) => {
     try {
-      const response = await axios.post('http://localhost:3001/api/users/login', data);
+      const response = await axios.post('http://localhost:3001/api/businesses/login', data);
       const { token } = response.data;
       localStorage.setItem('token', token);
-      alert('Login successful');
+      alert('Business login successful');
       router.push('/'); // Redirect to home page or dashboard
     } catch (error) {
-      alert('Login failed');
+      alert('Business login failed');
       console.error(error);
     }
   };

@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useGigs } from '../hooks/useGigs';
 import { Gig } from '@/models/gig';
+import { useRouter, useParams } from 'next/navigation';
+import axios from 'axios';
+import jwt from 'jsonwebtoken';
 
 const gigSchema = z.object({
   title: z.string().min(1, 'Title is required'),
-  company: z.string().min(1, 'Company is required'),
   description: z.string().min(1, 'Description is required'),
   deadline: z.string().min(1, 'Deadline is required'),
   guidelines: z.string().min(1, 'Guidelines are required'),
@@ -25,21 +27,75 @@ const GigForm: React.FC = () => {
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<GigFormData>({
     resolver: zodResolver(gigSchema),
   });
+  const router = useRouter();
+  const params = useParams();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [companyName, setCompanyName] = useState<string | null>(null);
 
-  const onSubmit = (data: GigFormData) => {
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const decodedToken = jwt.decode(token);
+          if (decodedToken && typeof decodedToken !== 'string' && decodedToken.exp) {
+            const currentTime = Date.now() / 1000;
+            if (decodedToken.exp > currentTime) {
+              setIsLoggedIn(true);
+              setCompanyName(params.companyName as string);
+            } else {
+              setIsLoggedIn(false);
+              localStorage.removeItem('token');
+              router.push('/business/login');
+            }
+          }
+        } catch (error) {
+          console.error('Error decoding token:', error);
+          setIsLoggedIn(false);
+          localStorage.removeItem('token');
+          router.push('/business/login');
+        }
+      } else {
+        setIsLoggedIn(false);
+        router.push('/business/login');
+      }
+    };
+
+    checkLoginStatus();
+  }, [router, params.companyName]);
+
+  const onSubmit = async (data: GigFormData) => {
+    if (!isLoggedIn || !companyName) {
+      alert('Please log in to create a gig');
+      router.push('/business/login');
+      return;
+    }
+
     const formattedData = new Gig({
       ...data,
+      company: companyName,
       deadline: new Date(data.deadline),
       bounty: parseFloat(data.bounty.toString()),
       skills: data.skills.split(',').map(skill => skill.trim()),
     });
-    createGig(formattedData);
+
+    try {
+      await createGig(formattedData);
+      alert('Gig created successfully');
+      router.push(`/${companyName}/dashboard`);
+    } catch (error) {
+      console.error('Error creating gig:', error);
+      alert('Failed to create gig. Please try again.');
+    }
   };
 
-  // Helper function to handle skills input
   const handleSkillsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue('skills', e.target.value);
   };
+
+  if (!isLoggedIn || !companyName) {
+    return null; // Return null as the useEffect will handle the redirect
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto mt-8 space-y-6">
@@ -47,12 +103,6 @@ const GigForm: React.FC = () => {
         <label className="block mb-2 text-sm font-bold text-black">Title</label>
         <input {...register('title')} className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black" />
         {errors.title && <p className="mt-1 text-sm text-black">{errors.title.message}</p>}
-      </div>
-      
-      <div>
-        <label className="block mb-2 text-sm font-bold text-black">Company</label>
-        <input {...register('company')} className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black" />
-        {errors.company && <p className="mt-1 text-sm text-black">{errors.company.message}</p>}
       </div>
 
       <div>
