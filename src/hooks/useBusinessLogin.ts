@@ -20,8 +20,9 @@ export const useLoginBusiness = () => {
   const onSubmit = async (data: LoginBusinessFormData) => {
     try {
       const response = await axios.post('http://localhost:3001/api/businesses/login', data);
-      const { token } = response.data;
-      localStorage.setItem('token', token);
+      const { business_token, businessId } = response.data;
+      localStorage.setItem('business_token', business_token);
+      //localStorage.setItem('businessId', businessId);
       alert('Business login successful');
       router.push('/'); // Redirect to home page or dashboard
     } catch (error) {

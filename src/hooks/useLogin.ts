@@ -20,8 +20,8 @@ export const useLogin = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       const response = await axios.post('http://localhost:3001/api/users/login', data);
-      const { token } = response.data;
-      localStorage.setItem('token', token);
+      const { user_token, userId } = response.data;
+      localStorage.setItem('user_token', user_token);
       alert('Login successful');
       router.push('/'); // Redirect to home page or dashboard
     } catch (error) {
